@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Printing;
 using System.Management;
+using System.ServiceProcess;
 
 namespace SpoolCleaner
 {
@@ -30,14 +31,10 @@ namespace SpoolCleaner
             ObjectQuery Query = new ObjectQuery("SELECT * FROM Win32_Printer");
             ManagementObjectSearcher Searcher = new ManagementObjectSearcher(Scope, Query);
 
-            foreach (ManagementObject WmiObject in Searcher.Get())
-            {
-                //Console.WriteLine("{0,-35} {1,-40}", "State", WmiObject["PrinterState"]);// String
-                //Console.WriteLine("{0,-35} {1,-40}", "Spool", WmiObject["SpoolEnabled"]);// String
-                //Console.WriteLine("{0,-35} {1,-40}", "LastReset", WmiObject["TimeOfLastReset"]);// String
-                Console.WriteLine(WmiObject.GetText(TextFormat.CimDtd20));
-            }
-
+            //foreach (ManagementObject WmiObject in Searcher.Get())
+            //{
+            //    Console.WriteLine(WmiObject.GetText(TextFormat.CimDtd20));
+            //}
 
             myTimer.Tick += new EventHandler(TimerEventProcessor);
 
@@ -67,7 +64,19 @@ namespace SpoolCleaner
                             int ms = (int) ts.TotalMilliseconds;
                             if (ms > 7000)
                             {
-                                v.Cancel();
+                                ServiceController sc = new ServiceController("Spooler");
+
+                                if (sc.CanStop)
+                                {
+                                    sc.Stop();
+                                }
+
+                                while (sc.Status == ServiceControllerStatus.Running)
+                                {
+                                    sc.Refresh();
+                                }
+
+                                sc.Start();
                             }
                         }
                     }
